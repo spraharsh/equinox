@@ -569,7 +569,10 @@ def _check_closure_convert_input(self, args, kwargs):
     in_dynamic, in_static = partition((args, kwargs), is_array)
     if isinstance(self, _ClosureConvert):
         in_leaves, in_treedef = jtu.tree_flatten(in_dynamic)
-        get_aval = jax.typeof if hasattr(jax, "typeof") else jax.core.get_aval
+        if hasattr(jax, "typeof"):
+            get_aval = jax.typeof
+        else:
+            get_aval = jax.core.get_aval  # pyright: ignore[reportAttributeAccessIssue]
         matches = in_treedef == self.in_dynamic_struct[1] and all(
             _normalise_closure_convert_aval(var.aval)
             == _normalise_closure_convert_aval(get_aval(value))
