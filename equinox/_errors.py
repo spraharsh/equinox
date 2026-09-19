@@ -113,6 +113,12 @@ def _error_inner(
     category,
 ):
     assert callable(msg)
+    # hasattr(jax.sharding, "get_abstract_mesh") keeps compatibility
+    # with older jax versions
+    if on_error != "off" and hasattr(jax.sharding, "get_abstract_mesh"):
+        axes = jax.sharding.get_abstract_mesh().manual_axes
+        if axes:
+            pred = lax.pmax(pred, axes) # allreduce boolean or
 
     if on_error == "raise":
 
@@ -348,8 +354,8 @@ def error_if(
         happens in the overall computation: it will happen after `x` is computed and
         before the return value is used. `x` can be any PyTree, and it must contain at
         least one array.
-    - `pred`: a boolean for whether to raise an error. If vmap'd then an error will be
-        raised if any batch element has `True`.
+    - `pred`: a boolean for whether to raise an error. If vmap'd or shard_map'd then an error will be
+        raised if any batch/shard element has `True`.
     - `msg`: the string to display as an error message. If passed as a string then it
         will be used directly. If passed as a callable then it will be called with `x`,
         and should return a string.
